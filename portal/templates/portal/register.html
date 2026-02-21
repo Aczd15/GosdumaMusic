@@ -7,6 +7,7 @@
     {% csrf_token %}
     {% for field in form %}
       <label>{{ field.label }} {{ field }}</label>
+      {% if field.help_text %}<small class="helper">{{ field.help_text }}</small>{% endif %}
       {% if field.errors %}<small class="error-text">{{ field.errors|striptags }}</small>{% endif %}
     {% endfor %}
     <button class="btn btn-primary" type="submit">Зарегистрироваться</button>

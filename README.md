@@ -33,3 +33,17 @@
 ## Категории заявок
 - Если в форме заявки нет категорий, зайдите в `/admin-panel/` под админом и добавьте категории в блоке «Категории заявок».
 - Альтернативно можно добавить категории в Django Admin: `/admin/` → «Категории заявок».
+
+
+## Проблема с .venv в PyCharm
+Если видите ошибку `Cannot run program ... .venv\Scripts\python.exe (CreateProcess error=2)`, значит путь к интерпретатору битый.
+
+1. В PyCharm откройте **File → Settings → Project → Python Interpreter**.
+2. Нажмите ⚙ → **Add Interpreter** → **Add Local Interpreter** → **Virtualenv**.
+3. Выберите папку проекта и создайте новое окружение `.venv`.
+4. После этого в терминале проекта выполните:
+   ```bash
+   pip install -r requirements.txt
+   python manage.py migrate
+   python manage.py runserver
+   ```

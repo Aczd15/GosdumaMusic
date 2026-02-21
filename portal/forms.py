@@ -14,7 +14,12 @@ class RegistrationForm(forms.Form):
     username = forms.CharField(label='Логин', min_length=3, max_length=150)
     password = forms.CharField(label='Пароль', min_length=6, widget=forms.PasswordInput)
     full_name = forms.CharField(label='ФИО', max_length=255)
-    phone = forms.CharField(label='Телефон', max_length=20)
+    phone = forms.CharField(
+        label='Телефон',
+        max_length=20,
+        help_text='Можно вводить в любом привычном виде: 89001234567, +7 900 123-45-67 и т.д.',
+        widget=forms.TextInput(attrs={'placeholder': '8(900)123-45-67', 'inputmode': 'tel'}),
+    )
     email = forms.EmailField(label='E-mail', max_length=254)
 
     def clean_username(self):
@@ -30,11 +35,23 @@ class RegistrationForm(forms.Form):
         return full_name
 
     def clean_phone(self):
-        phone = self.cleaned_data['phone'].strip()
+        raw_phone = self.cleaned_data['phone'].strip()
+        digits = ''.join(ch for ch in raw_phone if ch.isdigit())
+
+        if len(digits) == 11 and digits.startswith('7'):
+            digits = f'8{digits[1:]}'
+
+        if len(digits) != 11 or not digits.startswith('8'):
+            raise forms.ValidationError('Введите телефон: 8(XXX)XXX-XX-XX, 8XXXXXXXXXX или +7XXXXXXXXXX.')
+
+        phone = f'{digits[0]}({digits[1:4]}){digits[4:7]}-{digits[7:9]}-{digits[9:11]}'
+
         if not re.fullmatch(PHONE_PATTERN, phone):
             raise forms.ValidationError('Телефон должен быть в формате 8(XXX)XXX-XX-XX.')
+
         if Profile.objects.filter(phone=phone).exists():
             raise forms.ValidationError('Пользователь с таким номером телефона уже существует.')
+
         return phone
 
     def clean_email(self):
