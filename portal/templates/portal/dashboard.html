@@ -1,0 +1,49 @@
+{% extends 'portal/base.html' %}
+{% block title %}Личный кабинет | GosdumaMusic{% endblock %}
+{% block content %}
+<header class="nav">
+  <h1>Личный кабинет</h1>
+  <div class="nav-links">
+    <a class="btn btn-secondary" href="{% url 'create_request' %}">Новая заявка</a>
+    <a class="btn btn-primary" href="{% url 'logout' %}">Выйти</a>
+  </div>
+</header>
+
+<section class="card">
+  <h2>Профиль</h2>
+  <div class="grid-two">
+    <p><strong>Логин:</strong> {{ request.user.username }}</p>
+    <p><strong>ФИО:</strong> {{ request.user.profile.full_name }}</p>
+    <p><strong>Телефон:</strong> {{ request.user.profile.phone }}</p>
+    <p><strong>E-mail:</strong> {{ request.user.email }}</p>
+  </div>
+</section>
+
+<section class="card top-gap">
+  <h2>Мои музыкальные заявки</h2>
+  {% if not requests %}
+    <div class="message message-success">У вас пока нет созданных заявок. Нажмите «Новая заявка», чтобы создать первую заявку.</div>
+  {% else %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+        <tr><th>Проект</th><th>Дата</th><th>Жанр</th><th>Формат</th><th>Статус</th></tr>
+        </thead>
+        <tbody>
+        {% for item in requests %}
+          <tr>
+            <td>{{ item.project_name }}</td>
+            <td>{{ item.event_date|date:'d.m.Y' }}</td>
+            <td>{{ item.genre }}</td>
+            <td>{{ item.participation_format }}</td>
+            <td><span class="badge
+              {% if item.status == 'Новая' %}status-new{% elif item.status == 'На рассмотрении' %}status-review{% elif item.status == 'Одобрена' %}status-approved{% else %}status-rejected{% endif %}
+              ">{{ item.status }}</span></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

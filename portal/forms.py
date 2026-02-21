@@ -1,0 +1,93 @@
+import re
+
+from django import forms
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
+
+from .models import MusicRequest, Profile
+
+PHONE_PATTERN = r'^8\(\d{3}\)\d{3}-\d{2}-\d{2}$'
+FULL_NAME_PATTERN = r'^[А-Яа-яЁё\s]+$'
+
+
+class RegistrationForm(forms.Form):
+    username = forms.CharField(label='Логин', min_length=3, max_length=150)
+    password = forms.CharField(label='Пароль', min_length=6, widget=forms.PasswordInput)
+    full_name = forms.CharField(label='ФИО', max_length=255)
+    phone = forms.CharField(label='Телефон', max_length=20)
+    email = forms.EmailField(label='E-mail', max_length=254)
+
+    def clean_username(self):
+        username = self.cleaned_data['username'].strip()
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError('Пользователь с таким логином уже существует.')
+        return username
+
+    def clean_full_name(self):
+        full_name = self.cleaned_data['full_name'].strip()
+        if not re.fullmatch(FULL_NAME_PATTERN, full_name):
+            raise forms.ValidationError('ФИО должно содержать только кириллицу и пробелы.')
+        return full_name
+
+    def clean_phone(self):
+        phone = self.cleaned_data['phone'].strip()
+        if not re.fullmatch(PHONE_PATTERN, phone):
+            raise forms.ValidationError('Телефон должен быть в формате 8(XXX)XXX-XX-XX.')
+        if Profile.objects.filter(phone=phone).exists():
+            raise forms.ValidationError('Пользователь с таким номером телефона уже существует.')
+        return phone
+
+    def clean_email(self):
+        email = self.cleaned_data['email'].strip()
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError('Пользователь с таким e-mail уже существует.')
+        return email
+
+    def save(self) -> User:
+        user = User.objects.create_user(
+            username=self.cleaned_data['username'],
+            email=self.cleaned_data['email'],
+            password=self.cleaned_data['password'],
+        )
+        Profile.objects.create(
+            user=user,
+            full_name=self.cleaned_data['full_name'],
+            phone=self.cleaned_data['phone'],
+        )
+        return user
+
+
+class LoginForm(forms.Form):
+    username = forms.CharField(label='Логин')
+    password = forms.CharField(label='Пароль', widget=forms.PasswordInput)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        username = cleaned_data.get('username')
+        password = cleaned_data.get('password')
+        if username and password:
+            user = authenticate(username=username, password=password)
+            if user is None:
+                raise forms.ValidationError('Неверный логин или пароль.')
+            cleaned_data['user'] = user
+        return cleaned_data
+
+
+class MusicRequestForm(forms.ModelForm):
+    class Meta:
+        model = MusicRequest
+        fields = ['project_name', 'event_date', 'genre', 'participation_format']
+        labels = {
+            'project_name': 'Название проекта/мероприятия',
+            'event_date': 'Желаемая дата проведения',
+            'genre': 'Жанр музыки',
+            'participation_format': 'Формат участия',
+        }
+        widgets = {
+            'event_date': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+
+class StatusUpdateForm(forms.Form):
+    request_id = forms.IntegerField(widget=forms.HiddenInput)
+    status = forms.ChoiceField(choices=MusicRequest.STATUS_CHOICES)

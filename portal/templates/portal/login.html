@@ -1,0 +1,18 @@
+{% extends 'portal/base.html' %}
+{% block title %}Авторизация | GosdumaMusic{% endblock %}
+{% block content %}
+<section class="card auth-card">
+  <h1>GosdumaMusic</h1>
+  <p class="helper">Вход для пользователей и администратора.</p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="message message-error">{{ form.non_field_errors|striptags }}</div>{% endif %}
+    <label>Логин {{ form.username }}</label>
+    {% if form.username.errors %}<small class="error-text">{{ form.username.errors|striptags }}</small>{% endif %}
+    <label>Пароль {{ form.password }}</label>
+    {% if form.password.errors %}<small class="error-text">{{ form.password.errors|striptags }}</small>{% endif %}
+    <button class="btn btn-primary" type="submit">Войти</button>
+  </form>
+  <p>Еще не зарегистрированы? <a href="{% url 'register' %}">Регистрация</a></p>
+</section>
+{% endblock %}
