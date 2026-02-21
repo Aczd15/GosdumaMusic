@@ -11,6 +11,7 @@ from .forms import (
     LoginForm,
     MusicGroupForm,
     MusicRequestForm,
+    ProfileGroupCreateForm,
     RegistrationForm,
     RequestCategoryForm,
     StatusUpdateForm,
@@ -92,11 +93,37 @@ def register_view(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
+@require_http_methods(['GET', 'POST'])
 def dashboard_view(request: HttpRequest) -> HttpResponse:
     if request.user.is_superuser:
         return redirect('admin_panel')
+
+    profile = request.user.profile
+    group_form = ProfileGroupCreateForm(request.POST or None)
+
+    if request.method == 'POST' and request.POST.get('action') == 'create_my_group':
+        if profile.group:
+            messages.error(request, 'У вас уже привязана группа в профиле.')
+            return redirect('dashboard')
+
+        if group_form.is_valid():
+            group = group_form.save(commit=False)
+            group.owner = request.user
+            group.save()
+            profile.group = group
+            profile.save(update_fields=['group'])
+            messages.success(request, 'Группа создана и привязана к вашему профилю.')
+            return redirect('dashboard')
+
     requests = request.user.music_requests.select_related('category').all()
-    return render(request, 'portal/dashboard.html', {'requests': requests})
+    return render(
+        request,
+        'portal/dashboard.html',
+        {
+            'requests': requests,
+            'group_form': group_form,
+        },
+    )
 
 
 @login_required
@@ -110,7 +137,7 @@ def create_request_view(request: HttpRequest) -> HttpResponse:
         music_request = form.save(commit=False)
         music_request.user = request.user
         music_request.status = MusicRequest.STATUS_NEW
-        music_request.genre = music_request.category.name if music_request.category else ""
+        music_request.genre = music_request.category.name if music_request.category else ''
         music_request.save()
         messages.success(request, 'Заявка отправлена и получила статус «Новая».')
         return redirect('dashboard')

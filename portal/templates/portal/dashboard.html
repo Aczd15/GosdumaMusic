@@ -18,6 +18,21 @@
     <p><strong>E-mail:</strong> {{ request.user.email }}</p>
     <p><strong>Группа:</strong> {{ request.user.profile.group.name|default:'Не указана' }}</p>
   </div>
+
+  {% if not request.user.profile.group %}
+    <div class="top-gap">
+      <h3>Создать свою группу</h3>
+      <form method="post" class="stack" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_my_group">
+        {% for field in group_form %}
+          <label>{{ field.label }} {{ field }}</label>
+          {% if field.errors %}<small class="error-text">{{ field.errors|striptags }}</small>{% endif %}
+        {% endfor %}
+        <button class="btn btn-secondary" type="submit">Создать группу в профиле</button>
+      </form>
+    </div>
+  {% endif %}
 </section>
 
 <section class="card top-gap">

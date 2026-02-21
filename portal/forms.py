@@ -38,11 +38,6 @@ class RegistrationForm(forms.Form):
         widget=forms.TextInput(attrs={'placeholder': '8(900)123-45-67', 'inputmode': 'tel'}),
     )
     email = forms.EmailField(label='E-mail', max_length=254)
-    group_name = forms.CharField(
-        label='Название вашей группы',
-        max_length=120,
-        help_text='Если группы нет, она будет создана автоматически при регистрации.',
-    )
 
     def clean_username(self):
         username = self.cleaned_data['username'].strip()
@@ -68,31 +63,16 @@ class RegistrationForm(forms.Form):
             raise forms.ValidationError('Пользователь с таким e-mail уже существует.')
         return email
 
-    def clean_group_name(self):
-        group_name = self.cleaned_data['group_name'].strip()
-        if not group_name:
-            raise forms.ValidationError('Укажите название группы.')
-        return group_name
-
     def save(self) -> User:
         user = User.objects.create_user(
             username=self.cleaned_data['username'],
             email=self.cleaned_data['email'],
             password=self.cleaned_data['password'],
         )
-        music_group, created = MusicGroup.objects.get_or_create(
-            name=self.cleaned_data['group_name'],
-            defaults={'owner': user},
-        )
-        if created and music_group.owner_id != user.id:
-            music_group.owner = user
-            music_group.save(update_fields=['owner'])
-
         Profile.objects.create(
             user=user,
             full_name=self.cleaned_data['full_name'],
             phone=self.cleaned_data['phone'],
-            group=music_group,
         )
         return user
 
@@ -148,6 +128,16 @@ class MusicGroupForm(forms.ModelForm):
         labels = {
             'name': 'Название группы',
             'description': 'Описание (необязательно)',
+        }
+
+
+class ProfileGroupCreateForm(forms.ModelForm):
+    class Meta:
+        model = MusicGroup
+        fields = ['name', 'description']
+        labels = {
+            'name': 'Название вашей группы',
+            'description': 'Описание группы (необязательно)',
         }
 
 
