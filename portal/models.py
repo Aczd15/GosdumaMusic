@@ -11,6 +11,19 @@ class Profile(models.Model):
         return self.full_name
 
 
+class RequestCategory(models.Model):
+    name = models.CharField('Категория', max_length=120, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Категория заявки'
+        verbose_name_plural = 'Категории заявок'
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class MusicRequest(models.Model):
     STATUS_NEW = 'Новая'
     STATUS_REVIEW = 'На рассмотрении'
@@ -28,6 +41,13 @@ class MusicRequest(models.Model):
     project_name = models.CharField(max_length=255)
     event_date = models.DateField()
     genre = models.CharField(max_length=100)
+    category = models.ForeignKey(
+        RequestCategory,
+        on_delete=models.PROTECT,
+        related_name='music_requests',
+        null=True,
+        blank=True,
+    )
     participation_format = models.CharField(max_length=120)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_NEW)
     created_at = models.DateTimeField(auto_now_add=True)

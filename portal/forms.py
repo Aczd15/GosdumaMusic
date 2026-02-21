@@ -4,7 +4,7 @@ from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 
-from .models import MusicRequest, Profile
+from .models import MusicRequest, Profile, RequestCategory
 
 PHONE_PATTERN = r'^8\(\d{3}\)\d{3}-\d{2}-\d{2}$'
 FULL_NAME_PATTERN = r'^[А-Яа-яЁё\s]+$'
@@ -76,16 +76,29 @@ class LoginForm(forms.Form):
 class MusicRequestForm(forms.ModelForm):
     class Meta:
         model = MusicRequest
-        fields = ['project_name', 'event_date', 'genre', 'participation_format']
+        fields = ['project_name', 'event_date', 'category', 'participation_format']
         labels = {
             'project_name': 'Название проекта/мероприятия',
             'event_date': 'Желаемая дата проведения',
-            'genre': 'Жанр музыки',
+            'category': 'Категория заявки',
             'participation_format': 'Формат участия',
         }
         widgets = {
             'event_date': forms.DateInput(attrs={'type': 'date'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['category'].queryset = RequestCategory.objects.all()
+        if not self.fields['category'].queryset.exists():
+            self.fields['category'].help_text = 'Категорий пока нет. Администратор может добавить их в панели администратора.'
+
+
+class RequestCategoryForm(forms.ModelForm):
+    class Meta:
+        model = RequestCategory
+        fields = ['name']
+        labels = {'name': 'Новая категория'}
 
 
 class StatusUpdateForm(forms.Form):

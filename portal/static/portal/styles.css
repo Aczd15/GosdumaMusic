@@ -84,3 +84,6 @@ tr:hover td { background: #f8fbfa; }
   .card { padding: 18px; }
   .nav { flex-direction: column; align-items: flex-start; }
 }
+
+.inline-form { display: flex; gap: 10px; align-items: center; }
+.inline-form input { max-width: 360px; }

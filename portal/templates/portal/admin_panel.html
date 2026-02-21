@@ -6,6 +6,19 @@
   <a class="btn btn-primary" href="{% url 'logout' %}">Выйти</a>
 </header>
 <section class="card">
+  <h2>Категории заявок</h2>
+  <form method="post" class="inline-form">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="create_category">
+    {{ category_form.name }}
+    <button class="btn btn-secondary" type="submit">Добавить категорию</button>
+  </form>
+  {% if category_form.name.errors %}
+    <small class="error-text">{{ category_form.name.errors|striptags }}</small>
+  {% endif %}
+  <p class="helper">Также категории можно редактировать в Django Admin по адресу <strong>/admin</strong> → «Категории заявок».</p>
+</section>
+<section class="card top-gap">
   <h2>Все музыкальные заявки</h2>
   {% if not requests %}
     <p class="helper">Пока заявок нет.</p>
@@ -13,7 +26,7 @@
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Пользователь</th><th>Проект</th><th>Дата</th><th>Жанр</th><th>Формат</th><th>Статус</th></tr>
+          <tr><th>Пользователь</th><th>Проект</th><th>Дата</th><th>Категория</th><th>Формат</th><th>Статус</th></tr>
         </thead>
         <tbody>
         {% for item in requests %}
@@ -21,11 +34,12 @@
             <td>{{ item.user.profile.full_name }} ({{ item.user.username }})</td>
             <td>{{ item.project_name }}</td>
             <td>{{ item.event_date|date:'d.m.Y' }}</td>
-            <td>{{ item.genre }}</td>
+            <td>{{ item.category.name|default:item.genre }}</td>
             <td>{{ item.participation_format }}</td>
             <td>
               <form method="post">
                 {% csrf_token %}
+                <input type="hidden" name="action" value="update_status">
                 <input type="hidden" name="request_id" value="{{ item.id }}">
                 <select name="status" onchange="this.form.submit()">
                   {% for value, label in status_choices %}

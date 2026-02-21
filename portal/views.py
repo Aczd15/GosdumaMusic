@@ -6,7 +6,13 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
-from .forms import LoginForm, MusicRequestForm, RegistrationForm, StatusUpdateForm
+from .forms import (
+    LoginForm,
+    MusicRequestForm,
+    RegistrationForm,
+    RequestCategoryForm,
+    StatusUpdateForm,
+)
 from .models import MusicRequest
 
 ADMIN_LOGIN = 'BraveGuap'
@@ -64,7 +70,7 @@ def register_view(request: HttpRequest) -> HttpResponse:
 def dashboard_view(request: HttpRequest) -> HttpResponse:
     if request.user.is_superuser:
         return redirect('admin_panel')
-    requests = request.user.music_requests.all()
+    requests = request.user.music_requests.select_related('category').all()
     return render(request, 'portal/dashboard.html', {'requests': requests})
 
 
@@ -79,6 +85,7 @@ def create_request_view(request: HttpRequest) -> HttpResponse:
         music_request = form.save(commit=False)
         music_request.user = request.user
         music_request.status = MusicRequest.STATUS_NEW
+        music_request.genre = music_request.category.name
         music_request.save()
         messages.success(request, 'Заявка отправлена и получила статус «Новая».')
         return redirect('dashboard')
@@ -94,16 +101,47 @@ def admin_panel_view(request: HttpRequest) -> HttpResponse:
         return redirect('dashboard')
 
     if request.method == 'POST':
-        form = StatusUpdateForm(request.POST)
-        if form.is_valid():
-            music_request = get_object_or_404(MusicRequest, pk=form.cleaned_data['request_id'])
-            music_request.status = form.cleaned_data['status']
-            music_request.save(update_fields=['status'])
-            messages.success(request, 'Статус заявки обновлен.')
-        return redirect('admin_panel')
+        action = request.POST.get('action')
+        if action == 'update_status':
+            form = StatusUpdateForm(request.POST)
+            if form.is_valid():
+                music_request = get_object_or_404(MusicRequest, pk=form.cleaned_data['request_id'])
+                music_request.status = form.cleaned_data['status']
+                music_request.save(update_fields=['status'])
+                messages.success(request, 'Статус заявки обновлен.')
+            return redirect('admin_panel')
 
-    all_requests = MusicRequest.objects.select_related('user', 'user__profile').all()
-    return render(request, 'portal/admin_panel.html', {'requests': all_requests, 'status_choices': MusicRequest.STATUS_CHOICES})
+        if action == 'create_category':
+            category_form = RequestCategoryForm(request.POST)
+            if category_form.is_valid():
+                category_form.save()
+                messages.success(request, 'Категория успешно добавлена.')
+            else:
+                all_requests = MusicRequest.objects.select_related('user', 'user__profile', 'category').all()
+                status_form = StatusUpdateForm()
+                return render(
+                    request,
+                    'portal/admin_panel.html',
+                    {
+                        'requests': all_requests,
+                        'status_choices': MusicRequest.STATUS_CHOICES,
+                        'status_form': status_form,
+                        'category_form': category_form,
+                    },
+                )
+            return redirect('admin_panel')
+
+    all_requests = MusicRequest.objects.select_related('user', 'user__profile', 'category').all()
+    return render(
+        request,
+        'portal/admin_panel.html',
+        {
+            'requests': all_requests,
+            'status_choices': MusicRequest.STATUS_CHOICES,
+            'status_form': StatusUpdateForm(),
+            'category_form': RequestCategoryForm(),
+        },
+    )
 
 
 @login_required
