@@ -7,13 +7,15 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
 from .forms import (
+    AdminUserCreateForm,
     LoginForm,
+    MusicGroupForm,
     MusicRequestForm,
     RegistrationForm,
     RequestCategoryForm,
     StatusUpdateForm,
 )
-from .models import MusicRequest
+from .models import MusicGroup, MusicRequest
 
 ADMIN_LOGIN = 'BraveGuap'
 ADMIN_PASSWORD = 'gosdum'
@@ -30,6 +32,29 @@ def ensure_admin_user() -> User:
         admin_user.is_superuser = True
         admin_user.save()
     return admin_user
+
+
+def render_admin_panel(
+    request: HttpRequest,
+    *,
+    category_form: RequestCategoryForm | None = None,
+    group_form: MusicGroupForm | None = None,
+    user_form: AdminUserCreateForm | None = None,
+) -> HttpResponse:
+    all_requests = MusicRequest.objects.select_related('user', 'user__profile', 'category').all()
+    all_groups = MusicGroup.objects.select_related('owner').all()
+    return render(
+        request,
+        'portal/admin_panel.html',
+        {
+            'requests': all_requests,
+            'groups': all_groups,
+            'status_choices': MusicRequest.STATUS_CHOICES,
+            'category_form': category_form or RequestCategoryForm(),
+            'group_form': group_form or MusicGroupForm(),
+            'user_form': user_form or AdminUserCreateForm(),
+        },
+    )
 
 
 @require_http_methods(['GET', 'POST'])
@@ -85,7 +110,7 @@ def create_request_view(request: HttpRequest) -> HttpResponse:
         music_request = form.save(commit=False)
         music_request.user = request.user
         music_request.status = MusicRequest.STATUS_NEW
-        music_request.genre = music_request.category.name
+        music_request.genre = music_request.category.name if music_request.category else ""
         music_request.save()
         messages.success(request, 'Заявка отправлена и получила статус «Новая».')
         return redirect('dashboard')
@@ -102,6 +127,7 @@ def admin_panel_view(request: HttpRequest) -> HttpResponse:
 
     if request.method == 'POST':
         action = request.POST.get('action')
+
         if action == 'update_status':
             form = StatusUpdateForm(request.POST)
             if form.is_valid():
@@ -116,32 +142,28 @@ def admin_panel_view(request: HttpRequest) -> HttpResponse:
             if category_form.is_valid():
                 category_form.save()
                 messages.success(request, 'Категория успешно добавлена.')
-            else:
-                all_requests = MusicRequest.objects.select_related('user', 'user__profile', 'category').all()
-                status_form = StatusUpdateForm()
-                return render(
-                    request,
-                    'portal/admin_panel.html',
-                    {
-                        'requests': all_requests,
-                        'status_choices': MusicRequest.STATUS_CHOICES,
-                        'status_form': status_form,
-                        'category_form': category_form,
-                    },
-                )
-            return redirect('admin_panel')
+                return redirect('admin_panel')
+            return render_admin_panel(request, category_form=category_form)
 
-    all_requests = MusicRequest.objects.select_related('user', 'user__profile', 'category').all()
-    return render(
-        request,
-        'portal/admin_panel.html',
-        {
-            'requests': all_requests,
-            'status_choices': MusicRequest.STATUS_CHOICES,
-            'status_form': StatusUpdateForm(),
-            'category_form': RequestCategoryForm(),
-        },
-    )
+        if action == 'create_group':
+            group_form = MusicGroupForm(request.POST)
+            if group_form.is_valid():
+                group = group_form.save(commit=False)
+                group.owner = request.user
+                group.save()
+                messages.success(request, 'Музыкальная группа создана.')
+                return redirect('admin_panel')
+            return render_admin_panel(request, group_form=group_form)
+
+        if action == 'create_user':
+            user_form = AdminUserCreateForm(request.POST)
+            if user_form.is_valid():
+                user_form.save()
+                messages.success(request, 'Пользователь успешно создан.')
+                return redirect('admin_panel')
+            return render_admin_panel(request, user_form=user_form)
+
+    return render_admin_panel(request)
 
 
 @login_required

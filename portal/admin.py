@@ -1,12 +1,18 @@
 from django.contrib import admin
 
-from .models import MusicRequest, Profile, RequestCategory
+from .models import MusicGroup, MusicRequest, Profile, RequestCategory
 
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'full_name', 'phone')
-    search_fields = ('user__username', 'full_name', 'phone')
+    list_display = ('user', 'full_name', 'phone', 'group')
+    search_fields = ('user__username', 'full_name', 'phone', 'group__name')
+
+
+@admin.register(MusicGroup)
+class MusicGroupAdmin(admin.ModelAdmin):
+    list_display = ('name', 'owner', 'created_at')
+    search_fields = ('name', 'owner__username')
 
 
 @admin.register(RequestCategory)

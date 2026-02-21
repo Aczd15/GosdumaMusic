@@ -2,10 +2,38 @@ from django.contrib.auth.models import User
 from django.db import models
 
 
+class MusicGroup(models.Model):
+    name = models.CharField('Название группы', max_length=120, unique=True)
+    description = models.TextField('Описание', blank=True)
+    owner = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='owned_groups',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Музыкальная группа'
+        verbose_name_plural = 'Музыкальные группы'
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     full_name = models.CharField(max_length=255)
     phone = models.CharField(max_length=20, unique=True)
+    group = models.ForeignKey(
+        MusicGroup,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='members',
+    )
 
     def __str__(self) -> str:
         return self.full_name
