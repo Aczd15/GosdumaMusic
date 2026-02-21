@@ -1,0 +1,22 @@
+{% load static %}
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}GosdumaMusic{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'portal/styles.css' %}">
+</head>
+<body>
+<main class="container">
+  {% if messages %}
+    <div class="stack">
+      {% for message in messages %}
+        <div class="message {% if message.tags == 'error' %}message-error{% else %}message-success{% endif %}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>
